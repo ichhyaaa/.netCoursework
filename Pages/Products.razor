@@ -1,0 +1,259 @@
+@page "/products"
+@inject ItemServices ItemServices
+@inject OrderServices OrderServices
+@inject ISnackbar Snackbar
+<style>
+    body {
+        background-color: #e5d0ff;
+    }
+</style>
+<nav class="navbar navbar-light bg-#e5d0ff mb-5">
+    <div class="container-fluid">
+        <h3> BisleriumCafé -Coffees</h3>
+    </div>
+</nav>
+
+<MudButton Variant="Variant.Filled" DisableElevation="true" Color="Color.Info" @onclick="OpenAddItemForm" Disabled="@(!isAdmin)">Add Product</MudButton>
+<br />
+<br />
+
+<table class="table table-hover table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>Coffee Name</th>
+            <th>Coffe Type</th>
+            <th>Price</th>
+            <th>Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var context in Elements)
+        {
+            <tr>
+                <td data-label="Coffee Name">@context.ProductName</td>
+                <td data-label="Coffee Type">@context.ProductType</td>
+                <td data-label="Price">NRP @context.ProductPrice</td>
+                <td data-label="Action">
+                    <button class="btn btn-primary btn-sm" onclick="@(() => OpenDialog(context.ProductID.ToString()))" disabled="@(!isAdmin)">Edit</button>
+                    <button class="btn btn-secondary btn-sm" onclick="@(() => AddItemInCart(context.ProductID, context.ProductName, context.ProductType, context.ProductPrice))">Add to Cart</button>
+                    <button class="btn btn-danger btn-sm" onclick="@(() => DeleteItemFromInventory(@context.ProductID))" disabled="@(!isAdmin)">Delete</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+
+
+
+<MudDialog @bind-IsVisible="visible" Options="dialogOptions">
+
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            Enter product details
+
+        </MudText>
+    </TitleContent>
+
+    <DialogContent>
+
+        <MudTextField @bind-Value="_pass" Label="Password" Variant="Variant.Text"></MudTextField>
+        <MudTextField @bind-Value="_itemPrice" Label="Price" Variant="Variant.Text"></MudTextField>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Default" OnClick="CloseDialog" Class="px-10">Close</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="EditItem" Class="px-10">Update</MudButton>
+    </DialogActions>
+
+</MudDialog>
+
+
+<MudDialog @bind-IsVisible="visibleAddItemDialog" Options="dialogOptions">
+
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+           Enter product details
+        </MudText>
+    </TitleContent>
+
+    <DialogContent>
+        <MudSelect T="string" Label="Coffee Type" AnchorOrigin="Origin.BottomCenter" @bind-Value="_item.ProductType">
+            <MudSelectItem Value="@("Coffee")" />
+            <MudSelectItem Value="@("Add-in")" />
+            <MudSelectItem Value="@("Honey")" />
+        </MudSelect>
+        <MudTextField @bind-Value="_item.ProductName" Label="Coffee Name" Variant="Variant.Text"></MudTextField>
+        <MudTextField @bind-Value="_item.ProductPrice" Label="Price" Variant="Variant.Text" Min="0.0"></MudTextField>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Default" OnClick="CloseDialogForm" Class="px-10">Close</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="AddItemToInventory" Class="px-10">Add Product</MudButton>
+    </DialogActions>
+
+</MudDialog>
+
+@code {
+
+    [CascadingParameter]
+    private GlobalState _globalState { get; set; }
+
+    private bool dense = true;
+    private bool hover = true;
+    private bool striped = false;
+    private bool bordered = false;
+
+    private bool isAdmin { get; set; }
+
+    private IEnumerable<Product> Elements = new List<Product>();
+
+
+    protected override void OnInitialized()
+    {
+        isAdmin = _globalState.CurrentUser.Role.ToString() == "admin";
+        Elements = ItemServices.GetItemsFromFile();
+
+    }
+
+    private bool visible;
+    private string _itemID { get; set; }
+    private double _itemPrice { get; set; }
+    private string _pass { get; set; }
+
+    private Product _item { get; set; } = new();
+    private bool visibleAddItemDialog;
+
+    private void OpenAddItemForm()
+    {
+        visibleAddItemDialog = true;
+
+        StateHasChanged();
+    }
+
+    private void CloseDialogForm()
+    {
+        visibleAddItemDialog = false;
+        _item = new();
+        StateHasChanged();
+
+    }
+
+    private void OpenDialog(string itemID)
+    {
+        visible = true;
+        _itemID = itemID;
+
+        Product item = ItemServices.GetItemByID(itemID);
+
+        if (item != null)
+        {
+
+            _itemPrice = item.ProductPrice;
+        }
+        StateHasChanged();
+
+    }
+
+    private void CloseDialog()
+    {
+
+        visible = false;
+    }
+
+    private DialogOptions dialogOptions = new() { FullWidth = true };
+
+    protected void AddItemToInventory()
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(_item.ProductName) || string.IsNullOrEmpty(_item.ProductType))
+            {
+                Snackbar.Add("All Fields are required", Severity.Error);
+                return;
+            }
+
+            if (_item.ProductPrice <= 0)
+            {
+                Snackbar.Add("Please enter valid price", Severity.Error);
+                return;
+            }
+
+            ItemServices.AddItem(_item);
+
+            Snackbar.Add("Item added", Severity.Success);
+
+            visibleAddItemDialog = false;
+
+            Elements = ItemServices.GetItemsFromFile();
+
+            _item = new();
+
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+
+        }
+    }
+
+    protected void EditItem()
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(_pass))
+            {
+                Snackbar.Add("Password is required", Severity.Error);
+                return;
+            }
+
+
+            if (_itemPrice <= 0)
+            {
+                Snackbar.Add("Please enter valid price", Severity.Error);
+                return;
+            }
+
+            if (_pass != _globalState.CurrentUser.Password)
+            {
+                Snackbar.Add("Invalid current password", Severity.Error);
+                return;
+            }
+
+            ItemServices.UpdateItem(_itemID, _itemPrice);
+
+            Snackbar.Add("Item details updated", Severity.Success);
+
+            visible = false;
+
+            Elements = ItemServices.GetItemsFromFile();
+
+            StateHasChanged();
+
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+
+        }
+    }
+
+
+    private void AddItemInCart(Guid itemID, string itemName, String itemType, Double itemPrice)
+    {
+        OrderServices.AddItemToCart(_globalState.ProductsInCart, itemID, itemName, itemType, itemPrice);
+
+        Snackbar.Add($"{itemName} is Added to cart", Severity.Success);
+    }
+
+
+    private void DeleteItemFromInventory(Guid itemID)
+    {
+        ItemServices.DeleteItem(itemID.ToString());
+
+        Snackbar.Add("Item is deleted", Severity.Success);
+
+        Elements = ItemServices.GetItemsFromFile();
+        StateHasChanged();
+    }
+}

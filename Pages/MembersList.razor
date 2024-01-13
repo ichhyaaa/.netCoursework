@@ -1,0 +1,55 @@
+@page "/members"
+@inject MemberServices MemberServices
+@inject NavigationManager NavManager
+<style>
+    body {
+        background-color: #e5d0ff;
+    }
+</style>
+<MudTable Items="@Elements" Dense="@dense" Hover="@hover" Bordered="@bordered" Striped="@striped" Style="background-color: #e5d0ff;">
+    <ToolBarContent>
+        <MudText Typo="Typo.h4">Customer Member List</MudText>
+        <MudSpacer />
+
+    </ToolBarContent>
+
+    <HeaderContent>
+        <MudTh>Member ID</MudTh>
+        <MudTh>Full Name</MudTh>
+        <MudTh>Phone Number</MudTh>
+        <MudTh>Order Count</MudTh>
+        <MudTh>Membership Registration Date</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Nr">@context.ID</MudTd>
+            <MudTd DataLabel="Sign">@context.Name</MudTd>
+            <MudTd DataLabel="Name">@context.PhoneNum</MudTd>
+            <MudTd DataLabel="Name">@context.OrderCount</MudTd>
+            <MudTd DataLabel="Name">@context.JoinedDate</MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+
+
+@code {
+    [CascadingParameter]
+    private GlobalState _globalState { get; set; }
+
+
+    private bool dense = true;
+    private bool hover = true;
+    private bool striped = false;
+    private bool bordered = false;
+
+
+
+    private IEnumerable<Customer> Elements = new List<Customer>();
+
+    protected override void OnInitialized()
+    {
+        Elements = MemberServices.GetMembers();
+
+    }
+}

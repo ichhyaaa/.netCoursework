@@ -1,0 +1,124 @@
+@page "/generate-pdf"
+@inject PdfDataService PdfDataService
+@inject ISnackbar Snackbar
+@using QuestPDF.Fluent
+<style>
+    body {
+        background-color: #e5d0ff;
+    }
+</style>
+<MudText Typo="Typo.h4">Daily Report Generator</MudText>
+
+<div class="container mt-5">
+    <!-- Section 1: Daily Report -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label for="dailyDate">Select Date:</label>
+                <input type="date" class="form-control" id="dailyDate" @bind="_dayDate">
+            </div>
+            <button class="btn btn-primary mt-4" onclick="@(() => OnClickGenerateDailyReport())">Generate Daily Report</button>
+        </div>
+    </div>
+
+    <!-- Section 2: Monthly Report -->
+    <div class="row mt-5">
+        <div class="col-md-6">
+            <h2>Monthly Report Generator</h2>
+            <div class="form-group">
+                <label for="monthlyMonth">Select Month:</label>
+                <input type="month" class="form-control" id="monthlyMonth" @bind="_monthDate">
+            </div>
+            <button class="btn btn-primary mt-4" onclick="@(() => OnClickGenerateReportMonthly())">Generate Monthly Report</button>
+        </div>
+    </div>
+</div>
+
+@code{
+    private DateTime? _monthDate { set; get; }
+
+    private DateTime? _dayDate {set; get;}
+
+    private void OnClickGenerateReportMonthly()
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(_monthDate?.ToString()))
+            {
+                Snackbar.Add("Select Date", Severity.Error);
+                return;
+            };
+
+            List<Order> orders = PdfDataService.ProduceOrderList("monthly", _monthDate?.ToString("MM-yyyy"));
+
+            if (orders.Count == 0)
+            {
+                Snackbar.Add("Unable to generate PDF, No Orders on this date", Severity.Error);
+                return;
+            };
+
+
+            GeneratePDFDoc(orders, _monthDate?.ToString("MM-yyyy"));
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add(e.Message, Severity.Error);
+
+        }
+     }
+
+    private void OnClickGenerateDailyReport()
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(_dayDate?.ToString()))
+            {
+                Snackbar.Add("Select Date", Severity.Error);
+                return;
+            };
+
+            List<Order> orders = PdfDataService.ProduceOrderList("daily", _dayDate?.ToString("dd-MM-yyyy"));
+
+            if (orders.Count == 0)
+            {
+                Snackbar.Add("Unable to generate PDF, No Orders on this date", Severity.Error);
+                return;
+            };
+
+
+            GeneratePDFDoc(orders, _dayDate?.ToString("dd-MM-yyyy"));
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add(e.Message, Severity.Error);
+
+        }
+    }
+
+
+    private void GeneratePDFDoc(List<Order> orders, string _date)
+    {
+        List<OrderedProduct> coffees = PdfDataService.GetCoffeList(orders);
+        List<OrderedProduct> addIns = PdfDataService.GetAddInList(orders);
+
+        PDFModal _pdfDoc = new()
+            {
+                ReportDate = _date,
+                Orders = orders,
+                Coffees = coffees,
+                AddIns = addIns,
+                TotalRevenue = Math.Round(orders.Sum(_order => (_order.GrandTotal - _order.Discount)), 2)
+            };
+
+        // PDF Setup and Generation
+        QuestPDF.Settings.License = QuestPDF.Infrastructure.LicenseType.Community;
+
+        GeneratePDFClass doc = new GeneratePDFClass(_pdfDoc);
+
+        string filePath = Path.Combine(Utils.GetDesktopPath(), $"{new Random().Next(1, 100000).ToString()}_Report.PDF");
+
+        doc.GeneratePdf(filePath);
+
+        Snackbar.Add("PDF is generated!!!!", Severity.Success);
+    }
+}

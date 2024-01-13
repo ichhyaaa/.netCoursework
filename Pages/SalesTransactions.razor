@@ -1,0 +1,65 @@
+﻿@page "/transactions"
+@inject NavigationManager NavManager
+@inject OrderServices OrderServices
+<style>
+    body {
+        background-color: #e5d0ff;
+    }
+</style>
+<nav class="navbar navbar-light bg-#e5d0ff mb-5">
+    <div class="container-fluid">
+        <h3> Purchases/Sales Transactions -PDF Reports</h3>
+    </div>
+</nav>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>S.N</th>
+            <th>Order ID</th>
+            <th>Member Name</th>
+            <th>Phone Number</th>
+            <th>Order Date</th>
+            <th>Order Total</th>
+            <th>Discount</th>
+            <th>Grand Total</th>
+
+
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var context in _orders)
+        {
+            <tr>
+                <td data-label="Nr">@(index++)</td>
+                <td data-label="Nr">@context.ID</td>
+                <td data-label="Sign">@context.MemberName</td>
+                <td data-label="Name">@context.MemberPhoneNum</td>
+                <td data-label="Date">@context.OrderDate</td>
+                <td data-label="Total">NRP @context.GrandTotal</td>
+                <td data-label="Discount">NRP @context.Discount</td>
+                <td data-label="GrandTotal">NRP @(context.GrandTotal - context.Discount)</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    [CascadingParameter] GlobalState _globalState { get; set; }
+
+
+    private int index { get; set; } = 0;
+
+    private List<Order> _orders = new List<Order>();
+
+    protected override void OnInitialized()
+    {
+        if (_globalState.CurrentUser == null)
+        {
+            NavManager.NavigateTo("/login");
+        }
+
+        _orders = OrderServices.GetOrders();
+
+    }
+}

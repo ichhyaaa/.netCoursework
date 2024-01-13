@@ -1,0 +1,92 @@
+﻿@inject NavigationManager NavManager
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="">BisleriumCafé</a>
+        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<div class="@NavMenuCssClass" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+
+        @if (isAdmin)
+        {
+
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="/transactions" Match="NavLinkMatch.All">
+                    <i class="bi bi-receipt"></i> Transactions List
+                </NavLink>
+            </div>
+
+        }
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/products" Match="NavLinkMatch.All">
+                <i class="bi bi-list-ul"></i>
+                Order of Products
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/cart-items" Match="NavLinkMatch.All">
+                <i class="bi bi-cart-fill"></i>
+                Coffee Cart
+            </NavLink>
+        </div>
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/generate-pdf" Match="NavLinkMatch.All">
+                <i class="bi bi-file-pdf"></i>
+                PDF Creation
+            </NavLink>
+        </div>
+
+
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/members" Match="NavLinkMatch.All">
+                <i class="bi bi-person-fill"></i>
+                Membership
+            </NavLink>
+        </div>
+
+
+        <div class="nav-item px-5">
+      
+                <MudButton Variant="Variant.Outlined"
+                       @onclick="@(() => NavManager.NavigateTo("/"))"
+                       Color="Color.Primary"
+                       Class="w-full"
+                  >
+                  Logout
+              </MudButton>
+           
+        </div>
+
+
+
+    </nav>
+</div>
+
+@code {
+    private bool collapseNavMenu = true;
+
+    private string NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+
+    [CascadingParameter]
+    private GlobalState _globalState { get; set; }
+    private bool isAdmin { get; set; }
+
+    protected override void OnInitialized()
+    {
+        isAdmin = _globalState.CurrentUser?.Role?.ToString() == "admin";
+
+    }
+}

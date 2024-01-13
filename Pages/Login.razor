@@ -1,0 +1,80 @@
+@page "/"
+@layout EmptyLayout
+@inject UserServices UserServices
+@inject ISnackbar Snackbar
+@inject NavigationManager NavManager
+
+<style>
+    .login-container {
+        margin-top: 70px;
+        background-color: #e5d0ff;
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        width: 500px;
+        text-align: center;
+    }
+
+        .login-container h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+    .login-form input {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 10px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        box-sizing: border-box;
+    }
+
+   
+</style>
+
+<div class="px-6 py-5 d-flex justify-content-center">
+    <div class="login-container">
+        <h2> BisleriumCafé </h2>
+        <div class="login-form">
+            <MudTextField @bind-Value="_username" Label="Username" Variant="Variant.Text"></MudTextField>
+            <br>
+            <MudTextField @bind-Value="_password" Label="Password" Variant="Variant.Text" InputType="InputType.Password"></MudTextField>
+            <br>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="LogInHandler">Login</MudButton>
+        </div>
+    </div>
+</div>
+
+@code {
+    [CascadingParameter] GlobalState _globalState { get; set; }
+
+    private string _username { get; set; } = "admin";
+    private string _password { get; set; } = "admin";
+
+    private void LogInHandler()
+    {
+        try
+        {
+            _globalState.CurrentUser = UserServices.LogIn(_username, _password);
+
+            _username = "";
+            _password = "";
+
+            Snackbar.Add("User logged in successfully", Severity.Success);
+            
+            if(_globalState.CurrentUser.Role == "admin")
+            {
+                NavManager.NavigateTo("/transactions");
+            }
+            else
+            {
+                NavManager.NavigateTo("/products");
+            }
+
+        }
+        catch (Exception e)
+        {
+            Snackbar.Add(e.Message, Severity.Error);
+        }
+    }
+}
